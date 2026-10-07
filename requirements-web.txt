@@ -1,0 +1,8 @@
+# Runtime dependencies only (what Render installs). No PyTorch / sentence-transformers: movie vectors are
+# precomputed and shipped in the database, so the web app never needs a language model.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+psycopg[binary]>=3.2
+pgvector>=0.3
+numpy>=2.0
+python-dotenv>=1.0

@@ -1,0 +1,166 @@
+<p class="kicker">Report</p>
+<p class="lede">What we built, what we measured, and, just as important, what we did not manage to show.</p>
+<p class="muted">Every number and plot below comes from a result file in the project. Where a result is negative or inconclusive, it says so.</p>
+
+<div class="toc" role="navigation" aria-label="On this page">
+  <button data-go="r-summary">The short version</button>
+  <button data-go="r-retrieval">Do the films fit?</button>
+  <button data-go="r-sensing">Reading mood</button>
+  <button data-go="r-policy">Match or change</button>
+  <button data-go="r-house">Households</button>
+  <button data-go="r-systems">Database benchmarks</button>
+  <button data-go="r-limits">Limits</button>
+  <button data-go="r-repro">Reproduce</button>
+</div>
+
+<h2 class="sec" id="r-summary">The short version</h2>
+<div class="stats">
+  <div class="stat"><div class="n c">13,174</div><div class="d">real films in the catalogue (MovieLens + TMDB)</div></div>
+  <div class="stat"><div class="n c">3.76 vs 3.30</div><div class="d">average rating of recommended films vs. random films</div></div>
+  <div class="stat"><div class="n c">−43%</div><div class="d">questions per session (2.9 instead of 5) with adaptive quiz + fusion</div></div>
+  <div class="stat"><div class="n w">+0.035</div><div class="d">the most that learning match-vs-change could add. Learning it costs about as much.</div></div>
+  <div class="stat"><div class="n c">56×</div><div class="d">slower writes for HNSW than IVFFlat, with 17× faster reads at similar recall</div></div>
+  <div class="stat"><div class="n w">0</div><div class="d">real people tested so far. All outcome results are simulated.</div></div>
+</div>
+
+<div class="tbl wide"><table>
+  <tr><th>Claim</th><th>Verdict</th><th>Where</th></tr>
+  <tr><td>The whole system works on 13,174 real films</td><td><span class="pill yes">shown</span></td><td>28 automated tests; full loop run in the browser</td></tr>
+  <tr><td>Recommended films fit the mood and are well rated</td><td><span class="pill yes">shown</span></td><td>Do the films fit?</td></tr>
+  <tr><td>The adaptive quiz saves questions for similar accuracy</td><td><span class="pill yes">shown (simulated)</span></td><td>Reading mood</td></tr>
+  <tr><td>Typing rhythm adds useful evidence</td><td><span class="pill mid">weakly</span></td><td>Reading mood</td></tr>
+  <tr><td>A learned per-person match-or-change policy <b>improves net outcomes</b></td><td><span class="pill no">not shown</span></td><td>Match or change</td></tr>
+  <tr><td>The policy <b>identifies who needs matching</b></td><td><span class="pill yes">shown (simulated)</span></td><td>Match or change</td></tr>
+  <tr><td>Fairness-aware blending helps households</td><td><span class="pill no">not shown</span></td><td>Households</td></tr>
+  <tr><td>Population prior and people-like-you boost help</td><td><span class="pill mid">inconclusive</span></td><td>Reading mood</td></tr>
+  <tr><td>Index trade-offs for filtered search and constant updates</td><td><span class="pill yes">shown (measured)</span></td><td>Database benchmarks</td></tr>
+  <tr><td>It works for real people</td><td><span class="pill no">not tested</span></td><td>A pilot protocol exists</td></tr>
+</table></div>
+<div class="say warn"><b>Read this first</b><p>The outcome experiments use <em>simulated</em> people whose behaviour we defined. They show whether the mechanism works under stated assumptions. They are not evidence about real people; only a user study can be.</p></div>
+
+<h2 class="sec" id="r-retrieval">Do the films fit the mood, and are they good?</h2>
+<p>We asked for five films for each of 300 random moods and compared four ways of choosing them. "Mood-fit error" is how far, on average, the films' feel is from the target mood (0 would be perfect).</p>
+<div class="tbl wide"><table>
+  <tr><th>How films were chosen</th><th class="num">Mood-fit error</th><th class="num">Avg rating</th><th class="num">Rated ≥ 3.5</th><th class="num">Distinct films (of 1,500)</th></tr>
+  <tr><td>Random films</td><td class="num">0.873</td><td class="num">3.30</td><td class="num">39%</td><td class="num">1,429</td></tr>
+  <tr><td>Vector search only</td><td class="num">0.532</td><td class="num">3.20</td><td class="num">20%</td><td class="num">50</td></tr>
+  <tr><td>+ feel-distance re-rank (our first version)</td><td class="num">0.179</td><td class="num">3.23</td><td class="num">31%</td><td class="num">166</td></tr>
+  <tr class="hl"><td><b>Shipped</b>: + quality floor and varied slates</td><td class="num"><b>0.231</b></td><td class="num"><b>3.76</b></td><td class="num"><b>94%</b></td><td class="num"><b>283</b></td></tr>
+</table></div>
+<ul>
+  <li>Vector search alone captures only about a third of the mood fit and keeps returning the same 50 films. The re-rank supplies the precision.</li>
+  <li>Our first version fitted moods well but recommended films of exactly average quality. Adding a quality floor gave up a little mood fit for much better and more varied films.</li>
+  <li>The index's answers match exact search (0.99–1.00 overlap in the top five, including filtered queries) and are up to 11× faster (1.3 ms vs. 14.5 ms).</li>
+</ul>
+
+<h2 class="sec" id="r-sensing">Reading the mood: which signals earn their place?</h2>
+<p>60 simulated people for 40 days, three random seeds. "Mood error" is how far our estimate was from the true mood; "gain" is how much better the person felt afterwards (higher is better).</p>
+<div class="tbl wide"><table>
+  <tr><th>Sensing</th><th class="num">Mood error</th><th class="num">Questions / session</th><th class="num">Gain, last 10 days</th></tr>
+  <tr><td>Time of day only</td><td class="num">0.615 ± 0.005</td><td class="num">0</td><td class="num">+0.129 ± 0.006</td></tr>
+  <tr><td>Typing + time of day</td><td class="num">0.572 ± 0.010</td><td class="num">0</td><td class="num">+0.135 ± 0.060</td></tr>
+  <tr><td>Fixed 5-question quiz</td><td class="num">0.364 ± 0.025</td><td class="num">5.00</td><td class="num">+0.223 ± 0.061</td></tr>
+  <tr><td>Adaptive quiz</td><td class="num">0.387 ± 0.016</td><td class="num">4.08</td><td class="num">+0.212 ± 0.042</td></tr>
+  <tr class="hl"><td><b>Everything fused</b></td><td class="num">0.398 ± 0.001</td><td class="num"><b>2.86</b></td><td class="num">+0.210 ± 0.015</td></tr>
+</table></div>
+<figure class="plot"><img src="/static/img/fig3_sensing_ablation_v1.png" alt="Bar charts comparing five sensing setups on mood error, questions per session and wellbeing gain." loading="lazy"><figcaption><b>How to read it.</b> Left: how wrong the mood estimate is (shorter bar is better). Middle: questions asked. Right: how much better people felt afterwards. The fused system (teal) asks far fewer questions for only a little more error.</figcaption></figure>
+<ul>
+  <li><b>The quiz is the main sensor.</b> Knowing the mood is worth about +0.08 gain over guessing from context.</li>
+  <li><b>Typing is a weak helper</b>: it lowers mood error by about 7%. It is not a mood detector.</li>
+  <li>The adaptive quiz asks 18% fewer questions for 6% more error. The fused system asks <b>43% fewer</b> for 9% more error.</li>
+  <li>In a separate test, adaptive question choice beat random choice at equal length (error 0.527 vs. 0.637).</li>
+  <li><b>Inconclusive:</b> borrowing the population's experience for new users (first-week gain +0.184 ± 0.008 vs. +0.169 ± 0.039) and the people-like-you boost (+0.201 ± 0.016 vs. +0.189 ± 0.010) have overlapping intervals.</li>
+</ul>
+
+<h2 class="sec" id="r-policy">Match or change: a negative result, and what it taught us</h2>
+<h3>First attempt</h3>
+<p>The simple version, "always change the mood", beat our learned policy (+0.266 vs. +0.210), and the learned policy picked "match" about equally often for every kind of person (24%, 26%, 29%). It was not adapting at all.</p>
+<figure class="plot"><img src="/static/img/fig1_learning_curve_v1.png" alt="Learning curves for four policies over 40 days." loading="lazy"><figcaption><b>First run.</b> The orange line ("always regulate", meaning always change the mood) stays above the learned policy (teal) throughout.</figcaption></figure>
+<div class="say"><b>Why it failed (two reasons)</b>
+<p><b>1. Nothing to learn.</b> In our first simulation, changing the mood beat matching for <em>every</em> kind of person, even those who benefit from catharsis (+0.45 vs. +0.23). With no real differences between people, exploring was pure cost.</p>
+<p><b>2. Too little data.</b> Each person's scorecard got about 5 observations in 40 days, far too few to tell strategies apart.</p></div>
+<h3>What we changed</h3>
+<p>We pooled a person's evidence across their moods, made the shared prior stronger (12 imaginary observations), and required a margin before leaving the default strategy. We also added a second scenario where being cheered up while low feels dismissive to a "cathartic" minority. Settings were chosen on a separate trial seed, then evaluated on three fresh ones, with every policy facing the same simulated people.</p>
+<div class="tbl wide"><table>
+  <tr><th>Average gain over 40 days</th><th class="num">No real differences</th><th class="num">Strong differences</th></tr>
+  <tr><td>Always match</td><td class="num">+0.021</td><td class="num">+0.018</td></tr>
+  <tr><td>Random</td><td class="num">+0.145</td><td class="num">+0.100</td></tr>
+  <tr><td>Learned, no safeguard</td><td class="num">+0.218 ± 0.013</td><td class="num">+0.146 ± 0.032</td></tr>
+  <tr class="hl"><td><b>Learned, shipped</b></td><td class="num"><b>+0.237 ± 0.014</b></td><td class="num"><b>+0.163 ± 0.042</b></td></tr>
+  <tr><td>Always change the mood</td><td class="num">+0.255 ± 0.005</td><td class="num">+0.180 ± 0.041</td></tr>
+  <tr><td>Best possible per-person strategy (ceiling)</td><td class="num">+0.255</td><td class="num">+0.215</td></tr>
+  <tr><td><b>Headroom</b> (ceiling minus best single rule)</td><td class="num">+0.000</td><td class="num"><b>+0.035 ± 0.014</b></td></tr>
+</table></div>
+<figure class="plot"><img src="/static/img/fig7_shipped_policy.png" alt="Learning curves in two scenarios: with no differences between people and with strong differences." loading="lazy"><figcaption><b>The shipped policy.</b> In both scenarios it approaches, but does not pass, "always change the mood" (orange). Left: nothing to personalise. Right: a minority needs matching.</figcaption></figure>
+<figure class="plot"><img src="/static/img/fig11_horizon_shipped.png" alt="A 120-day run: average gain per policy, and the cumulative gap between the learned policy and always-regulate." loading="lazy"><figcaption><b>Over 120 days.</b> Left: the learned policy ends level with the simple rule. Right: the cumulative shortfall reaches its worst around day 65 and then shrinks, but is still negative at day 120. All policies drift down slowly because films you have already seen are excluded, so the best matches get used up.</figcaption></figure>
+<div class="stats">
+  <div class="stat"><div class="n c">25%</div><div class="d">of low-mood evenings where "cathartic" people get <em>match</em> (last 30 days of a 120-day run)</div></div>
+  <div class="stat"><div class="n">4–5%</div><div class="d">the same figure for everyone else. The policy does find who needs matching.</div></div>
+</div>
+<div class="say warn"><b>What this means</b><p>With these effect sizes, "change the mood by default and adapt cautiously" is the right product, and a self-tuning policy is a safeguard for the minority who are hurt by being cheered up, not a big win. Whether real people differ more than our strongest scenario is the open question. Only real data can answer it, and a 10-day pilot is too short to settle it.</p></div>
+
+<h2 class="sec" id="r-house">Households</h2>
+<p>We simulated 150 pairs sharing a screen, giving each person the strategy that suits them, and compared three ways of combining their tastes.</p>
+<div class="tbl wide"><table>
+  <tr><th>Rule</th><th class="num">Average member gain</th><th class="num">Worst-off member</th></tr>
+  <tr><td>Fairness-aware blend (ours)</td><td class="num">+0.194 ± 0.024</td><td class="num">+0.086 ± 0.029</td></tr>
+  <tr><td>Plain average</td><td class="num">+0.200 ± 0.025</td><td class="num">+0.088 ± 0.030</td></tr>
+  <tr><td>Only person A's picks</td><td class="num">+0.200 ± 0.030</td><td class="num">+0.084 ± 0.035</td></tr>
+</table></div>
+<p>No difference. In this model, most people's "change" targets point at the same kind of film, so the rule hardly matters. Household mode stays as a feature but is not claimed as a contribution.</p>
+
+<h2 class="sec" id="r-systems">Database benchmarks</h2>
+<p>These are measured, not simulated people. The data are a synthetic scale-up of the real film vectors (a real film plus a little noise), and the queries are real mood vectors. One laptop, one connection, 150 queries per setting.</p>
+<h3>Unfiltered search, 100,000 vectors</h3>
+<div class="tbl wide"><table>
+  <tr><th>Index</th><th class="num">Recall@10</th><th class="num">Median latency</th><th class="num">Build time</th><th class="num">Size</th></tr>
+  <tr><td>Exact scan (the answer key)</td><td class="num">1.000</td><td class="num">38.8 ms</td><td class="num">n/a</td><td class="num">n/a</td></tr>
+  <tr class="hl"><td><b>HNSW</b>, ef_search 40</td><td class="num">0.943</td><td class="num"><b>0.59 ms</b></td><td class="num">51 s</td><td class="num">205 MB</td></tr>
+  <tr><td>HNSW, ef_search 80</td><td class="num">0.988</td><td class="num">1.0 ms</td><td class="num">51 s</td><td class="num">205 MB</td></tr>
+  <tr><td>HNSW, ef_search 160</td><td class="num">0.999</td><td class="num">1.8 ms</td><td class="num">51 s</td><td class="num">205 MB</td></tr>
+  <tr><td>IVFFlat, probes 10</td><td class="num">0.664</td><td class="num">2.6 ms</td><td class="num">14 s</td><td class="num">165 MB</td></tr>
+  <tr><td>IVFFlat, probes 40</td><td class="num">0.883</td><td class="num">10.0 ms</td><td class="num">14 s</td><td class="num">165 MB</td></tr>
+</table></div>
+<figure class="plot"><img src="/static/img/fig8_recall_latency.png" alt="Recall versus median latency for IVFFlat and HNSW, with the exact scan marked." loading="lazy"><figcaption><b>How to read it.</b> Up and to the left is better (more accurate and faster). HNSW dominates: at 94% recall it is about 17× faster than IVFFlat at 88%. IVFFlat suffers because mood queries are tightly clustered and hit few of its partitions.</figcaption></figure>
+
+<h3>Filtered search: what happens when a filter keeps only a few films</h3>
+<div class="tbl wide"><table>
+  <tr><th>Method</th><th class="num">Keeps 50%</th><th class="num">10%</th><th class="num">1%</th><th class="num">0.1%</th><th class="num">Short answers at 0.1%</th></tr>
+  <tr><td>HNSW, plain filtering</td><td class="num">0.998</td><td class="num">0.949</td><td class="num">0.127</td><td class="num">0.003</td><td class="num">150 of 150</td></tr>
+  <tr><td>IVFFlat, probes 20</td><td class="num">0.770</td><td class="num">0.731</td><td class="num">0.587</td><td class="num">0.455</td><td class="num">27 of 150</td></tr>
+  <tr class="hl"><td><b>HNSW + iterative scan</b></td><td class="num">0.999</td><td class="num">0.965</td><td class="num"><b>0.973</b></td><td class="num"><b>0.845</b></td><td class="num"><b>0 of 150</b></td></tr>
+  <tr><td>Exact scan</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">0 of 150</td></tr>
+</table></div>
+<figure class="plot"><img src="/static/img/fig9_filtered.png" alt="Recall of each method as the filter becomes more selective." loading="lazy"><figcaption><b>How to read it.</b> Moving right, the filter keeps fewer films. Plain HNSW collapses (it finds a few neighbours, then discards them all). Iterative scanning keeps going until enough pass the filter, which is why the app turns it on. At the very extreme, iterative HNSW takes 52 ms while an exact scan takes 12 ms and is also perfect: a switch to exact scans for very selective filters is the obvious next step.</figcaption></figure>
+
+<h3>Constant updates: what a live mood index costs</h3>
+<p>Every reading rewrites a person's live mood vector. We replaced 10% of 50,000 vectors per round, eight rounds, while the population drifted toward the query region.</p>
+<div class="tbl wide"><table>
+  <tr><th>Variant</th><th class="num">Writes per second</th><th class="num">Latency at the end</th><th class="num">Upkeep per round</th><th class="num">Index size</th></tr>
+  <tr><td>HNSW</td><td class="num">202</td><td class="num">0.59 ms</td><td class="num">none</td><td class="num">102 → 184 MB</td></tr>
+  <tr><td>HNSW + VACUUM</td><td class="num">194</td><td class="num">0.58 ms</td><td class="num"><b>151 s</b></td><td class="num">102 → 113 MB</td></tr>
+  <tr><td>IVFFlat</td><td class="num"><b>11,330</b></td><td class="num">17.7 ms</td><td class="num">none</td><td class="num">83 → 149 MB</td></tr>
+  <tr><td>IVFFlat + REINDEX</td><td class="num">10,805</td><td class="num">9.9 ms</td><td class="num">4.7 s</td><td class="num">83 → 83 MB</td></tr>
+</table></div>
+<figure class="plot"><img src="/static/img/fig10_churn.png" alt="Recall, latency and index size across rounds of updates for four index variants." loading="lazy"><figcaption><b>How to read it.</b> HNSW keeps its speed but writes about 56× slower, accumulates dead entries (+80% size) and costs a lot to clean. IVFFlat writes quickly and rebuilds in seconds, but its queries slow down 6–10× as its partitions become lopsided. <b>Do not read the left panel as "recall improves":</b> the replaced vectors move toward the queries, so the answer key changes between rounds. Latency, size, write rate and upkeep are the reliable signals.</figcaption></figure>
+<p><b>Design consequence.</b> The read-heavy film index is HNSW with iterative scan. For the live mood index HNSW is fine at pilot scale (one write per reading) but would need batched writes or periodic rebuilds at scale.</p>
+
+<h2 class="sec" id="r-limits">What could be wrong</h2>
+<ul>
+  <li><b>Simulated people.</b> All outcome results use synthetic users whose responses we defined. The effect sizes are assumptions; the "strong differences" scenario was constructed to bracket the plausible range, not measured.</li>
+  <li><b>Tuning.</b> Policy settings (prior strength 12, pooling 1.0, margin 0.08) were chosen on one trial seed and evaluated on three others. The quality floor, pool size and slate temperature were tuned on random moods over the same catalogue.</li>
+  <li><b>The feel scores are hand-made</b>, and "better" is defined as more pleasant and less extreme. Both are design choices, not facts.</li>
+  <li><b>Typing parameters are not calibrated.</b> We found no public typing data labelled with emotion, so the starting values come from published findings.</li>
+  <li><b>Benchmarks</b> use synthetic scale on one machine.</li>
+  <li><b>The sensing results</b> were produced before the final policy was fixed; the policy changes do not touch sensing.</li>
+  <li><b>No pilot yet.</b> A protocol, consent sheet and hypotheses written in advance are ready, and the study needs instructor approval first.</li>
+</ul>
+
+<h2 class="sec" id="r-repro">Reproduce it</h2>
+<pre class="sql"><code>PYTHONPATH=src .venv/bin/python -m pytest tests                    # 28 tests
+PYTHONPATH=src .venv/bin/python -m reelstate.experiments_v2        # policy experiments
+PYTHONPATH=src .venv/bin/python -m reelstate.experiments_margin    # shipped policy
+PYTHONPATH=src .venv/bin/python -m reelstate.household_eval
+PYTHONPATH=src .venv/bin/python -m reelstate.retrieval_eval
+PYTHONPATH=src .venv/bin/python -m reelstate.bench e1|e2|e3 --n 100000</code></pre>
+<p class="muted">Seeds are fixed, and every policy in a comparison sees the same people and the same mood sequences.</p>

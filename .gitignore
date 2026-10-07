@@ -1,0 +1,11 @@
+.venv/
+.env
+data/
+db/postgres.log
+__pycache__/
+*.pyc
+catalog.sql.gz
+reports/*.log
+reports/**/sim_results*.json
+.DS_Store
+.pytest_cache/

@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "reelstate", "runtimeExecutable": "bash", "runtimeArgs": ["scripts/serve.sh"], "port": 8000 }
+  ]
+}

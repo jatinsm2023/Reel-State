@@ -1,0 +1,348 @@
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" style="fill:var(--text);fill-opacity:.7"/></marker>
+    <marker id="ahw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" style="fill:var(--warm)"/></marker>
+    <marker id="ahc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" style="fill:var(--cool)"/></marker>
+  </defs>
+</svg>
+
+<p class="kicker">How it works</p>
+<p class="lede">Reel State guesses how you feel, finds films that suit that feeling, and then asks how you feel afterwards, so it can learn whether matching your mood or changing it works better for you.</p>
+<p class="muted">Everything on this page is what the code actually does. Numbers and settings are the real ones.</p>
+
+<div class="toc" role="navigation" aria-label="On this page">
+  <button data-go="h-loop">The idea</button>
+  <button data-go="h-session">One session</button>
+  <button data-go="h-data">The data</button>
+  <button data-go="h-sense">Reading your mood</button>
+  <button data-go="h-find">From mood to films</button>
+  <button data-go="h-policy">Match or change?</button>
+  <button data-go="h-house">Watching together</button>
+  <button data-go="h-db">The database</button>
+  <button data-go="h-models">Every model and setting</button>
+  <button data-go="h-api">What the demo calls</button>
+</div>
+
+<h2 class="sec" id="h-loop">The idea in one picture</h2>
+<p>Most recommenders learn what you <em>like</em>. This one also asks how you <em>feel right now</em>, because the same person wants different films on a tired Tuesday and a happy Saturday. After each film it checks whether the choice helped, and that is the only place real feedback enters the system.</p>
+
+<figure class="fig">
+  <div class="scroll">
+  <svg class="dg" viewBox="0 0 1020 262" role="img" aria-label="Five stages in a loop: you, a mood belief, a match-or-change decision, a film search, and you watching. What you report after watching flows back to the decision and to the mood belief.">
+    <g class="mono" font-size="10.5" style="letter-spacing:.12em">
+      <text x="75" y="26" text-anchor="middle" class="s">SENSE</text><text x="293" y="26" text-anchor="middle" class="s">REMEMBER</text>
+      <text x="511" y="26" text-anchor="middle" class="s">DECIDE</text><text x="729" y="26" text-anchor="middle" class="s">SEARCH</text><text x="947" y="26" text-anchor="middle" class="s">LEARN</text>
+    </g>
+    <rect class="box" x="10" y="40" width="130" height="100" rx="8"/>
+    <text class="t" x="75" y="68" text-anchor="middle">You</text>
+    <text class="s" x="75" y="88" text-anchor="middle">type a few lines,</text><text class="s" x="75" y="103" text-anchor="middle">answer questions,</text><text class="s" x="75" y="118" text-anchor="middle">(and the hour)</text>
+
+    <rect class="box-c" x="228" y="40" width="130" height="100" rx="8"/>
+    <text class="t" x="293" y="68" text-anchor="middle" style="fill:var(--cool)">Mood belief</text>
+    <text class="s" x="293" y="88" text-anchor="middle">a point plus a doubt,</text><text class="s" x="293" y="103" text-anchor="middle">stored as a vector</text><text class="s" x="293" y="118" text-anchor="middle">in the database</text>
+
+    <rect class="box-w" x="446" y="40" width="130" height="100" rx="8"/>
+    <text class="t" x="511" y="68" text-anchor="middle" style="fill:var(--warm)">Match or change?</text>
+    <text class="s" x="511" y="88" text-anchor="middle">learned separately</text><text class="s" x="511" y="103" text-anchor="middle">for each person and</text><text class="s" x="511" y="118" text-anchor="middle">each kind of mood</text>
+
+    <rect class="box" x="664" y="40" width="130" height="100" rx="8"/>
+    <text class="t" x="729" y="68" text-anchor="middle">Find films</text>
+    <text class="s" x="729" y="88" text-anchor="middle">one SQL query:</text><text class="s" x="729" y="103" text-anchor="middle">vector search plus</text><text class="s" x="729" y="118" text-anchor="middle">your filters</text>
+
+    <rect class="box" x="882" y="40" width="130" height="100" rx="8"/>
+    <text class="t" x="947" y="68" text-anchor="middle">You watch</text>
+    <text class="s" x="947" y="88" text-anchor="middle">then tap how you</text><text class="s" x="947" y="103" text-anchor="middle">feel afterwards</text>
+
+    <g class="ln" marker-end="url(#ah)"><path d="M142,90H224"/><path d="M360,90H442"/><path d="M578,90H660"/><path d="M796,90H878"/></g>
+    <g class="lbl" text-anchor="middle">
+      <text x="183" y="56">timings,</text><text x="183" y="69">answers,</text><text x="183" y="82">hour</text>
+      <text x="401" y="62">mood ±</text><text x="401" y="75">doubt</text>
+      <text x="619" y="62">target</text><text x="619" y="75">mood</text>
+      <text x="837" y="62">5 films +</text><text x="837" y="75">reasons</text>
+    </g>
+    <path class="ln-w" d="M947,142V212H511V146" marker-end="url(#ahw)"/>
+    <path class="ln-w" d="M511,212H293V146" marker-end="url(#ahw)"/>
+    <text class="lbl-w" x="729" y="204" text-anchor="middle">how you felt afterwards teaches the policy what works for you</text>
+    <text class="lbl-w" x="402" y="234" text-anchor="middle">and refreshes the mood belief</text>
+  </svg>
+  </div>
+  <figcaption><b>The loop.</b> The thin arrows are one trip from "how are you?" to "here are five films". The orange path is the feedback that makes the system learn.</figcaption>
+</figure>
+
+<h3>Words you will see</h3>
+<div class="tbl wide"><table>
+  <tr><th>Word</th><th>Plain meaning</th></tr>
+  <tr><td class="k">Valence</td><td>How pleasant a feeling is, from unpleasant (−1) to pleasant (+1). Also used for films: how pleasant they feel.</td></tr>
+  <tr><td class="k">Arousal</td><td>How much energy is in the feeling, from calm (−1) to intense (+1). A film can be calm or intense in the same way.</td></tr>
+  <tr><td class="k">Mood belief</td><td>Our best guess of your valence and arousal <em>plus how unsure we are</em>. The doubt matters: it decides when to ask you a question.</td></tr>
+  <tr><td class="k">Embedding</td><td>A list of 384 numbers that describes a film (or a mood) so that similar things have similar numbers.</td></tr>
+  <tr><td class="k">Vector search / ANN</td><td>Finding the films whose numbers are closest to the mood's numbers without checking every film. The index that does this is called HNSW.</td></tr>
+  <tr><td class="k">Match / change (regulate)</td><td>Two strategies. <em>Match</em>: films that feel like your mood. <em>Change</em>: films that move you toward pleasant and the opposite energy.</td></tr>
+  <tr><td class="k">Policy</td><td>The rule that chooses match or change for you. It learns from your check-ins.</td></tr>
+</table></div>
+
+<h2 class="sec" id="h-session">What happens in one session</h2>
+<p>This is a real sequence, so the numbers mean order.</p>
+<ol>
+  <li><b>You arrive.</b> The app notes the hour and weekday. This is a very weak hint about mood (afternoons are livelier than 4 a.m.).</li>
+  <li><b>You write a few lines.</b> Your words stay in the browser. Only the rhythm (gaps between keystrokes and a coarse key type) is sent. See <em>Reading your mood</em>.</li>
+  <li><b>The app decides whether to ask.</b> If yesterday's mood has faded and the typing was not informative, it asks one to six quick questions. If it already knows you well enough, it asks nothing.</li>
+  <li><b>It updates your mood belief</b> and saves it as a new row in the database (the history is never overwritten).</li>
+  <li><b>The policy picks a strategy</b> for your kind of mood: match or change.</li>
+  <li><b>One query finds films</b> near the target mood, respecting your filters and skipping films you were already shown.</li>
+  <li><b>You watch and tap how you feel.</b> The system scores whether the film helped and updates the policy and your mood belief.</li>
+</ol>
+
+<h2 class="sec" id="h-data">The data</h2>
+<div class="tbl wide"><table>
+  <tr><th>Source</th><th>What we take from it</th><th class="num">Size</th></tr>
+  <tr><td class="k">MovieLens 25M (GroupLens)</td><td>Movie titles and genres, average rating and number of ratings, and the <b>Tag Genome</b>: for each film, how strongly it matches 1,128 tags such as "tense", "feel-good", "slow".</td><td class="num">13,174 films kept</td></tr>
+  <tr><td class="k">TMDB</td><td>Plot summary, running time and language, matched to each film.</td><td class="num">13,041 matched</td></tr>
+  <tr><td class="k">Our own tag lexicon</td><td>A hand-made table giving 176 mood-relevant tags a valence and an arousal score (for example "heartwarming" is pleasant and calm, "tense" is unpleasant and intense).</td><td class="num">176 tags</td></tr>
+  <tr><td class="k">Synthetic users</td><td>Only for the experiments in the Report. They never appear in the demo.</td><td class="num">n/a</td></tr>
+</table></div>
+<p>A film is kept if it has Tag Genome scores and at least 50 ratings. Each film is stored with its 384-number embedding, its valence and arousal, its strongest 30 tags, and its rating statistics.</p>
+
+<h3>Where each piece of data lives</h3>
+<figure class="fig">
+  <div class="scroll">
+  <svg class="dg" viewBox="0 0 996 420" role="img" aria-label="Database tables grouped by role. Sensing tables feed the mood store, which feeds recommendations. Recommendations lead to check-ins, which update the policy table, which feeds back into recommendations. The content tables feed recommendations from below.">
+    <g class="mono" font-size="10.5" style="letter-spacing:.12em">
+      <text x="22" y="40" class="s">SENSING</text><text x="284" y="40" class="s" style="fill:var(--cool)">MOOD STORE</text><text x="546" y="40" class="s">RECOMMENDATIONS</text><text x="808" y="40" class="s">CHECK-INS</text>
+      <text x="546" y="262" class="s">CONTENT</text><text x="808" y="262" class="s" style="fill:var(--warm)">POLICY</text>
+    </g>
+    <rect class="soft" x="10" y="48" width="190" height="196" rx="8"/>
+    <rect class="box" x="20" y="56" width="170" height="52" rx="6"/><text class="mono t" x="30" y="76" font-size="12.5">mood_events</text><text class="s" x="30" y="94">each reading, as numbers</text>
+    <rect class="box" x="20" y="116" width="170" height="52" rx="6"/><text class="mono t" x="30" y="136" font-size="12.5">typing_baseline</text><text class="s" x="30" y="154">your usual typing rhythm</text>
+    <rect class="box" x="20" y="176" width="170" height="60" rx="6"/><text class="mono t" x="30" y="196" font-size="12.5">quiz_items</text><text class="s" x="30" y="214">20 questions; your answers</text><text class="s" x="30" y="228">in quiz_responses</text>
+
+    <rect class="soft" x="272" y="48" width="190" height="148" rx="8" style="stroke:var(--cool);stroke-opacity:.5"/>
+    <rect class="box-c" x="282" y="56" width="170" height="64" rx="6"/><text class="mono t" x="292" y="76" font-size="12.5">mood_state</text><text class="s" x="292" y="94">history, append-only</text><text class="s" x="292" y="108">+ 384-number mood vector</text>
+    <rect class="box-c" x="282" y="128" width="170" height="60" rx="6"/><text class="mono t" x="292" y="148" font-size="12.5">mood_current</text><text class="s" x="292" y="166">live: one row per person,</text><text class="s" x="292" y="180">rewritten every reading</text>
+
+    <rect class="soft" x="534" y="48" width="190" height="104" rx="8"/>
+    <rect class="box" x="544" y="56" width="170" height="88" rx="6"/><text class="mono t" x="554" y="76" font-size="12.5">recommendations</text><text class="s" x="554" y="94">film, strategy, rank,</text><text class="s" x="554" y="108">score, and the reason</text><text class="s" x="554" y="122">why it was suggested</text>
+
+    <rect class="soft" x="796" y="48" width="190" height="104" rx="8"/>
+    <rect class="box" x="806" y="56" width="170" height="88" rx="6"/><text class="mono t" x="816" y="76" font-size="12.5">checkins</text><text class="s" x="816" y="94">how you felt after,</text><text class="s" x="816" y="108">liked or not, and the</text><text class="s" x="816" y="122">resulting reward</text>
+
+    <rect class="soft" x="534" y="270" width="190" height="124" rx="8"/>
+    <rect class="box" x="544" y="278" width="170" height="52" rx="6"/><text class="mono t" x="554" y="298" font-size="12.5">movies</text><text class="s" x="554" y="316">13,174 films + vectors</text>
+    <rect class="box" x="544" y="336" width="170" height="48" rx="6"/><text class="mono t" x="554" y="356" font-size="12.5">movie_tags</text><text class="s" x="554" y="372">30 strongest tags each</text>
+
+    <rect class="soft" x="796" y="270" width="190" height="104" rx="8" style="stroke:var(--warm);stroke-opacity:.5"/>
+    <rect class="box-w" x="806" y="278" width="170" height="88" rx="6"/><text class="mono t" x="816" y="298" font-size="12.5">policy_state</text><text class="s" x="816" y="316">for each person, mood</text><text class="s" x="816" y="330">kind and strategy: how</text><text class="s" x="816" y="344">well it has worked</text>
+
+    <g class="ln" marker-end="url(#ah)"><path d="M202,100H268"/><path d="M464,100H530"/><path d="M726,100H792"/><path d="M634,266V148"/></g>
+    <path class="ln-w" d="M886,148V266" marker-end="url(#ahw)"/>
+    <path class="ln-w" d="M792,326H760V128H728" marker-end="url(#ahw)"/>
+    <g class="lbl" text-anchor="middle"><text x="235" y="84">fuse</text><text x="235" y="97">readings</text><text x="497" y="84">current</text><text x="497" y="97">mood</text><text x="759" y="84">you report</text><text x="759" y="97">feelings</text></g>
+    <text class="lbl" x="644" y="212">candidate films</text>
+    <text class="lbl-w" x="896" y="212">reward</text>
+    <text class="lbl-w" x="806" y="394">feeds back: which strategy to use</text>
+  </svg>
+  </div>
+  <figcaption><b>Twelve tables, five jobs.</b> Every table that belongs to a person is keyed by <code>user_id</code> (and a <code>users</code> table holds names and a hashed access token). The mood store is the part that makes this more than a movie catalogue: mood is a vector in the database, updated constantly.</figcaption>
+</figure>
+
+<h2 class="sec" id="h-sense">Reading your mood</h2>
+<p>Three signals feed one belief. They differ a lot in how much to trust them.</p>
+<div class="tbl wide"><table>
+  <tr><th>Signal</th><th>How reliable</th><th>What it gives</th></tr>
+  <tr><td class="k">Quick questions</td><td><span class="pill yes">strong</span></td><td>An explicit answer about mood and energy. In our simulations this is the main sensor.</td></tr>
+  <tr><td class="k">How you type</td><td><span class="pill mid">weak</span></td><td>Faster typing hints at higher energy; more corrections and pauses hint at a lower mood. Compared with <em>your own</em> usual rhythm, not with other people.</td></tr>
+  <tr><td class="k">Time of day</td><td><span class="pill mid">very weak</span></td><td>Energy peaks mid-afternoon (4 p.m.) and dips at night; weekends are slightly happier.</td></tr>
+</table></div>
+
+<h3>Typing: what leaves your browser</h3>
+<figure class="fig">
+  <div class="scroll">
+  <svg class="dg" viewBox="0 0 1000 250" role="img" aria-label="The browser keeps the text you type. Only the gap between keystrokes and a coarse key type travel to the server. The server turns them into five numbers. The database stores only those five numbers and your running baseline.">
+    <rect class="box" x="10" y="30" width="300" height="180" rx="10"/><text class="mono s" x="24" y="52" style="letter-spacing:.12em">YOUR BROWSER</text>
+    <rect class="box-c" x="26" y="66" width="268" height="52" rx="6"/><text class="t" x="40" y="88" style="fill:var(--cool)">The words you type</text><text class="s" x="40" y="106">stay here and are thrown away</text>
+    <rect class="box" x="26" y="130" width="268" height="66" rx="6"/><text class="t" x="40" y="152">Key timing</text><text class="s" x="40" y="170">"142 ms since the last key,</text><text class="s" x="40" y="184">class: letter" (never which letter)</text>
+    <rect class="box" x="372" y="30" width="262" height="180" rx="10"/><text class="mono s" x="386" y="52" style="letter-spacing:.12em">SERVER</text>
+    <text class="t" x="386" y="86">Turns timing into five numbers</text>
+    <text class="s" x="386" y="108">1  median gap between keys</text><text class="s" x="386" y="124">2  how uneven the rhythm is</text><text class="s" x="386" y="140">3  share of long pauses</text><text class="s" x="386" y="156">4  share of corrections</text><text class="s" x="386" y="172">5  characters per second</text><text class="s" x="386" y="196" style="font-size:11px">needs at least 25 keys, or it ignores it</text>
+    <rect class="box-c" x="696" y="30" width="294" height="180" rx="10"/><text class="mono s" x="710" y="52" style="letter-spacing:.12em;fill:var(--cool)">DATABASE</text>
+    <text class="t" x="710" y="86">Stores</text><text class="s" x="710" y="106">the five numbers, and your own</text><text class="s" x="710" y="120">running average of them</text>
+    <text class="t" x="710" y="152">Never stores</text><text class="s" x="710" y="172">your text, raw timings,</text><text class="s" x="710" y="186">or which keys you pressed</text>
+    <g class="ln" marker-end="url(#ah)"><path d="M312,130H368"/><path d="M636,130H692"/></g>
+    <text class="lbl" x="340" y="116" text-anchor="middle">timing</text><text class="lbl" x="340" y="148" text-anchor="middle">only</text>
+    <text class="lbl" x="664" y="116" text-anchor="middle">5 numbers</text>
+  </svg>
+  </div>
+  <figcaption><b>Privacy by design.</b> An automated test checks that no list of raw timings or keys can end up in the database.</figcaption>
+</figure>
+<p>Each of the five numbers is turned into a z-score against your own history (your first sessions borrow from a typical typist, then blend toward you). The mood evidence from typing is deliberately given large uncertainty, so it nudges the belief without ever deciding it.</p>
+
+<h3>The adaptive quiz</h3>
+<p>The quiz is not a fixed form. It has a bank of 20 questions (10 about how pleasant you feel, 10 about energy), each with five answers. After every answer the app recomputes what it believes, then picks the question that would shrink its uncertainty the most. It stops as soon as it is sure enough.</p>
+<figure class="fig">
+  <div class="scroll">
+  <svg class="dg" viewBox="0 0 1000 262" role="img" aria-label="Quiz loop: start from the current belief, pick the most informative question, you answer, the belief updates, then a check asks whether the app is confident or has asked six questions. If not, it picks the next question; if so, it stops and saves your mood.">
+    <rect class="box-c" x="10" y="70" width="168" height="88" rx="8"/><text class="t" x="94" y="96" text-anchor="middle" style="fill:var(--cool)">Start from the</text><text class="t" x="94" y="112" text-anchor="middle" style="fill:var(--cool)">current belief</text><text class="s" x="94" y="132" text-anchor="middle">yesterday's mood,</text><text class="s" x="94" y="146" text-anchor="middle">now less certain</text>
+    <rect class="box" x="214" y="70" width="168" height="88" rx="8"/><text class="t" x="298" y="96" text-anchor="middle">Pick the question</text><text class="t" x="298" y="112" text-anchor="middle">that cuts doubt most</text><text class="s" x="298" y="132" text-anchor="middle">biggest expected drop</text><text class="s" x="298" y="146" text-anchor="middle">in uncertainty</text>
+    <rect class="box" x="418" y="70" width="168" height="88" rx="8"/><text class="t" x="502" y="96" text-anchor="middle">You answer</text><text class="s" x="502" y="118" text-anchor="middle">a very fast or very slow</text><text class="s" x="502" y="132" text-anchor="middle">answer counts for less</text><text class="s" x="502" y="146" text-anchor="middle">(careless or agonised)</text>
+    <rect class="box" x="622" y="70" width="168" height="88" rx="8"/><text class="t" x="706" y="96" text-anchor="middle">Update the belief</text><text class="s" x="706" y="118" text-anchor="middle">Bayes' rule over a grid</text><text class="s" x="706" y="132" text-anchor="middle">of possible moods,</text><text class="s" x="706" y="146" text-anchor="middle">one grid per axis</text>
+    <path class="box-w" d="M898,56L976,114L898,172L820,114Z"/><text class="t" x="898" y="108" text-anchor="middle" style="fill:var(--warm)">Sure enough?</text><text class="s" x="898" y="124" text-anchor="middle">doubt ≤ 0.6, or 6 asked</text>
+    <rect class="box" x="826" y="206" width="144" height="40" rx="8"/><text class="t" x="898" y="231" text-anchor="middle">Stop and save</text>
+    <g class="ln" marker-end="url(#ah)"><path d="M180,114H210"/><path d="M384,114H414"/><path d="M588,114H618"/><path d="M792,114H816"/><path d="M898,174V202"/></g>
+    <path class="ln-w" d="M898,54V22H298V66" marker-end="url(#ahw)"/>
+    <text class="lbl-w" x="600" y="16" text-anchor="middle">no: ask the next most useful question</text>
+    <text class="lbl-c" x="910" y="192">yes</text>
+  </svg>
+  </div>
+  <figcaption><b>Computerised adaptive testing.</b> The same idea as adaptive exams and clinical screening scales. A returning user needs about 2.4 questions on average; a brand-new user about 4.7. Questions you answered in the last 24 hours are not repeated.</figcaption>
+</figure>
+
+<h3>Putting the signals together</h3>
+<p>Your mood is treated as a hidden state that <b>drifts</b>, and each signal as a noisy look at it. After a good observation we know your mood well; as time passes, knowledge fades. About every six hours, half of what we knew has gone. When our doubt grows past a threshold (0.75 on either axis), the app asks again; until then it stays quiet.</p>
+<figure class="fig">
+  <div class="scroll">
+  <svg class="dg" viewBox="0 0 1000 318" role="img" aria-label="Illustration: after a quiz the shaded band of doubt is narrow, then widens over hours while the mood line relaxes toward the person's usual level; once the band passes a threshold the app asks again.">
+    <text class="mono s" x="70" y="14" style="letter-spacing:.12em">ILLUSTRATION OF THE MODEL, NOT MEASURED DATA</text>
+    <path class="soft" d="M70,150H910"/>
+    <path d="M70,111.0H910M70,189.0H910" style="stroke:var(--warm);stroke-width:1;stroke-dasharray:4 4;fill:none"/>
+    <text class="lbl-w" x="918" y="115.0">ask again</text><text class="lbl-w" x="918" y="129.0">if wider</text>
+    <path d="M70.0,98.0 L77.5,98.0 L85.0,98.0 L92.5,98.0 L100.0,98.0 L100.0,202.0 L92.5,202.0 L85.0,202.0 L77.5,202.0 L70.0,202.0 Z" style="fill:var(--cool);fill-opacity:.10"/><path d="M100.0,76.2 L107.5,75.5 L115.0,75.1 L122.5,74.8 L130.0,74.6 L137.5,74.5 L145.0,74.5 L152.5,74.5 L160.0,74.6 L167.5,74.8 L175.0,75.0 L182.5,75.2 L190.0,75.5 L197.5,75.7 L205.0,76.0 L212.5,76.4 L220.0,76.7 L227.5,77.0 L235.0,77.4 L242.5,77.7 L250.0,78.1 L257.5,78.5 L265.0,78.8 L272.5,79.2 L280.0,79.6 L287.5,80.0 L295.0,80.3 L302.5,80.7 L310.0,81.1 L317.5,81.4 L325.0,81.8 L332.5,82.2 L340.0,82.5 L347.5,82.9 L355.0,83.2 L362.5,83.5 L370.0,83.9 L377.5,84.2 L385.0,84.5 L392.5,84.9 L400.0,85.2 L407.5,85.5 L415.0,85.8 L422.5,86.1 L430.0,86.4 L437.5,86.7 L445.0,87.0 L452.5,87.2 L460.0,87.5 L467.5,87.8 L475.0,88.0 L482.5,88.3 L490.0,88.5 L497.5,88.8 L505.0,89.0 L512.5,89.2 L520.0,89.5 L527.5,89.7 L535.0,89.9 L542.5,90.1 L550.0,90.3 L557.5,90.5 L565.0,90.7 L572.5,90.9 L580.0,91.1 L587.5,91.3 L595.0,91.5 L602.5,91.6 L610.0,91.8 L617.5,92.0 L625.0,92.1 L632.5,92.3 L640.0,92.4 L647.5,92.6 L655.0,92.7 L662.5,92.9 L670.0,93.0 L677.5,93.2 L685.0,93.3 L692.5,93.4 L700.0,93.5 L700.0,197.2 L692.5,197.0 L685.0,196.9 L677.5,196.7 L670.0,196.6 L662.5,196.4 L655.0,196.2 L647.5,196.0 L640.0,195.9 L632.5,195.7 L625.0,195.5 L617.5,195.3 L610.0,195.1 L602.5,194.8 L595.0,194.6 L587.5,194.4 L580.0,194.2 L572.5,193.9 L565.0,193.7 L557.5,193.4 L550.0,193.1 L542.5,192.9 L535.0,192.6 L527.5,192.3 L520.0,192.0 L512.5,191.6 L505.0,191.3 L497.5,191.0 L490.0,190.6 L482.5,190.3 L475.0,189.9 L467.5,189.5 L460.0,189.1 L452.5,188.7 L445.0,188.3 L437.5,187.8 L430.0,187.4 L422.5,186.9 L415.0,186.4 L407.5,185.9 L400.0,185.3 L392.5,184.8 L385.0,184.2 L377.5,183.6 L370.0,183.0 L362.5,182.4 L355.0,181.7 L347.5,181.1 L340.0,180.3 L332.5,179.6 L325.0,178.9 L317.5,178.1 L310.0,177.2 L302.5,176.4 L295.0,175.5 L287.5,174.6 L280.0,173.6 L272.5,172.6 L265.0,171.6 L257.5,170.5 L250.0,169.4 L242.5,168.2 L235.0,167.0 L227.5,165.7 L220.0,164.3 L212.5,162.9 L205.0,161.5 L197.5,160.0 L190.0,158.4 L182.5,156.7 L175.0,154.9 L167.5,153.0 L160.0,151.1 L152.5,149.0 L145.0,146.8 L137.5,144.5 L130.0,142.0 L122.5,139.4 L115.0,136.6 L107.5,133.5 L100.0,130.2 Z" style="fill:var(--cool);fill-opacity:.18"/><path d="M700.0,149.0 L707.5,146.2 L715.0,143.8 L722.5,141.5 L730.0,139.4 L737.5,137.5 L745.0,135.7 L752.5,134.0 L760.0,132.4 L767.5,130.9 L775.0,129.5 L782.5,128.2 L790.0,126.9 L797.5,125.8 L805.0,124.6 L812.5,123.6 L820.0,122.5 L827.5,121.6 L835.0,120.7 L842.5,119.8 L850.0,119.0 L857.5,118.2 L865.0,117.4 L872.5,116.7 L880.0,116.0 L887.5,115.3 L895.0,114.7 L902.5,114.1 L910.0,113.5 L910.0,209.7 L902.5,209.8 L895.0,209.9 L887.5,209.9 L880.0,210.0 L872.5,210.1 L865.0,210.1 L857.5,210.2 L850.0,210.2 L842.5,210.2 L835.0,210.3 L827.5,210.2 L820.0,210.2 L812.5,210.2 L805.0,210.1 L797.5,210.0 L790.0,209.8 L782.5,209.7 L775.0,209.4 L767.5,209.2 L760.0,208.9 L752.5,208.5 L745.0,208.0 L737.5,207.5 L730.0,206.9 L722.5,206.2 L715.0,205.3 L707.5,204.3 L700.0,203.0 Z" style="fill:var(--cool);fill-opacity:.18"/>
+    <path class="ln-c" d="M70.0,150.0 L77.5,150.0 L85.0,150.0 L92.5,150.0 L100.0,150.0"/><path class="ln-c" d="M100.0,103.2 L107.5,104.5 L115.0,105.8 L122.5,107.1 L130.0,108.3 L137.5,109.5 L145.0,110.6 L152.5,111.8 L160.0,112.9 L167.5,113.9 L175.0,114.9 L182.5,115.9 L190.0,116.9 L197.5,117.8 L205.0,118.8 L212.5,119.7 L220.0,120.5 L227.5,121.4 L235.0,122.2 L242.5,123.0 L250.0,123.7 L257.5,124.5 L265.0,125.2 L272.5,125.9 L280.0,126.6 L287.5,127.3 L295.0,127.9 L302.5,128.5 L310.0,129.2 L317.5,129.7 L325.0,130.3 L332.5,130.9 L340.0,131.4 L347.5,132.0 L355.0,132.5 L362.5,133.0 L370.0,133.5 L377.5,133.9 L385.0,134.4 L392.5,134.8 L400.0,135.3 L407.5,135.7 L415.0,136.1 L422.5,136.5 L430.0,136.9 L437.5,137.2 L445.0,137.6 L452.5,138.0 L460.0,138.3 L467.5,138.6 L475.0,139.0 L482.5,139.3 L490.0,139.6 L497.5,139.9 L505.0,140.2 L512.5,140.4 L520.0,140.7 L527.5,141.0 L535.0,141.2 L542.5,141.5 L550.0,141.7 L557.5,142.0 L565.0,142.2 L572.5,142.4 L580.0,142.6 L587.5,142.8 L595.0,143.0 L602.5,143.2 L610.0,143.4 L617.5,143.6 L625.0,143.8 L632.5,144.0 L640.0,144.2 L647.5,144.3 L655.0,144.5 L662.5,144.6 L670.0,144.8 L677.5,144.9 L685.0,145.1 L692.5,145.2 L700.0,145.4"/><path class="ln-c" d="M700.0,176.0 L707.5,175.3 L715.0,174.5 L722.5,173.8 L730.0,173.2 L737.5,172.5 L745.0,171.9 L752.5,171.2 L760.0,170.6 L767.5,170.0 L775.0,169.5 L782.5,168.9 L790.0,168.4 L797.5,167.9 L805.0,167.4 L812.5,166.9 L820.0,166.4 L827.5,165.9 L835.0,165.5 L842.5,165.0 L850.0,164.6 L857.5,164.2 L865.0,163.8 L872.5,163.4 L880.0,163.0 L887.5,162.6 L895.0,162.3 L902.5,161.9 L910.0,161.6"/>
+    <path class="ln" d="M100.0,30V234" style="stroke-dasharray:2 4"/><path class="ln" d="M700.0,30V234" style="stroke-dasharray:2 4"/>
+    <text class="lbl" x="106.0" y="38">context, typing and a</text><text class="lbl" x="106.0" y="52">short quiz: doubt shrinks</text>
+    <text class="lbl" x="706.0" y="38">next evening: a new quiz,</text><text class="lbl" x="706.0" y="52">belief resets to what you say</text>
+    <circle cx="167.5" cy="74.8" r="4.5" style="fill:var(--warm)"/>
+    <text class="lbl-w" x="177.5" y="64.8">about 2 hours after a quiz,</text><text class="lbl-w" x="177.5" y="79.8">doubt is back over the line</text>
+    <g class="lbl" text-anchor="middle"><text x="250" y="262">+6 h</text><text x="430" y="262">+12 h</text><text x="610" y="262">+18 h</text><text x="790" y="262">+24 h</text></g>
+    <text class="lbl" x="62" y="102" text-anchor="end">good</text><text class="lbl" x="62" y="206" text-anchor="end">low</text><text class="lbl" x="62" y="154" text-anchor="end">usual</text>
+  </svg>
+  </div>
+  <figcaption><b>Mood is a belief that fades.</b> The line is our best guess of the mood; the shaded band is how unsure we are. Quick questions shrink the band sharply, typing shrinks it slightly. Then, with a 6-hour half-life, knowledge fades and the guess relaxes toward your usual level, which is what triggers the next question.</figcaption>
+</figure>
+
+<h2 class="sec" id="h-find">From mood to films</h2>
+<h3>Giving every film a feel</h3>
+<p>Each film gets a valence and arousal from its strongest tags: for every tag in our 176-tag lexicon we add the tag's score, weighted by how strongly the film matches it (cubed, so strong matches dominate). Scores are then spread out across the whole range so films are not all bunched in the middle. Spot checks: <i>Saw</i> and <i>Grave of the Fireflies</i> land at the unpleasant end, <i>Toy Story</i> and <i>Amélie</i> at the pleasant end, <i>Mad Max: Fury Road</i> at the top for intensity. The lexicon is hand-made and debatable in places (it rates <i>The Shawshank Redemption</i> as pleasant), which is why it sits in one table that can be replaced.</p>
+<h3>Putting a mood in the same space as the films</h3>
+<p>A film is a list of 384 numbers built from its title, genres, plot and strongest tags by a small language model (<code>all-MiniLM-L6-v2</code>). To search with a <em>mood</em> we need a mood in the same space. We fit a smooth curve from (valence, arousal) to "what a typical film with that feel looks like" in those 384 numbers. Evaluating it for your target gives the search vector.</p>
+<h3>The search</h3>
+<figure class="fig">
+  <div class="scroll">
+  <svg class="dg" viewBox="0 0 1000 318" role="img" aria-label="A funnel: 13,174 films in the catalogue, 400 nearest to the target mood after filters, only well-rated films, the 25 best-scoring, and 5 shown, sampled so different nights differ.">
+    <g>
+      <rect class="box" x="10" y="30" width="170" height="196" rx="8" style="fill-opacity:1"/>
+      <rect class="box-c" x="206" y="52" width="170" height="152" rx="8" style="fill-opacity:.1"/>
+      <rect class="box-c" x="402" y="74" width="170" height="108" rx="8" style="fill-opacity:.16"/>
+      <rect class="box-c" x="598" y="96" width="170" height="68" rx="8" style="fill-opacity:.22"/>
+      <rect class="box-c" x="794" y="112" width="196" height="40" rx="8" style="fill-opacity:.32"/>
+    </g>
+    <g text-anchor="middle">
+      <text x="95" y="108" style="font:500 30px var(--display);fill:var(--text)">13,174</text><text class="s" x="95" y="130">films in the</text><text class="s" x="95" y="144">catalogue</text>
+      <text x="291" y="116" style="font:500 30px var(--display);fill:var(--cool)">400</text><text class="s" x="291" y="138">closest to the target</text><text class="s" x="291" y="152">mood, after your</text><text class="s" x="291" y="166">filters (HNSW)</text>
+      <text x="487" y="126" style="font:500 22px var(--display);fill:var(--cool)">well rated</text><text class="s" x="487" y="146">rating ≥ 3.4 after</text><text class="s" x="487" y="160">shrinking small samples</text>
+      <text x="683" y="136" style="font:500 26px var(--display);fill:var(--cool)">25</text><text class="s" x="683" y="152">best scores</text>
+      <text x="892" y="130" style="font:500 22px var(--display);fill:var(--cool)">5 shown</text><text class="s" x="892" y="146" style="font-size:11px">sampled, so nights differ</text>
+    </g>
+    <g class="ln" marker-end="url(#ah)"><path d="M182,128H202"/><path d="M378,128H398"/><path d="M574,128H594"/><path d="M770,128H790"/></g>
+    <g class="lbl" text-anchor="middle"><text x="95" y="252">your filters: length,</text><text x="95" y="266">language, genre, not seen</text><text x="291" y="252">one SQL query</text><text x="487" y="252">quality floor</text><text x="683" y="252">rank by score</text><text x="892" y="252">weighted draw</text></g>
+    <rect class="soft" x="10" y="282" width="980" height="30" rx="6"/>
+    <text class="mono" x="500" y="302" text-anchor="middle" style="font-size:12px">score = similarity − 0.55 × (distance in feel) + 0.10 × (quality margin) + 0.20 × (people-like-you boost)</text>
+  </svg>
+  </div>
+  <figcaption><b>From the whole catalogue to five films.</b> "People-like-you boost": the app also looks up the 20 people whose current mood vector is nearest to yours and gives a bonus to films that left them feeling good. Slates are sampled from the top 25, not always the same top five, so you do not see identical films each evening.</figcaption>
+</figure>
+<div class="say"><b>Why not just rank by similarity?</b><p>We tried. Vector search alone fits the mood only roughly and keeps returning the same 50 films. Adding the "distance in feel" term fixes the fit; adding a quality floor stops it suggesting mediocre films. The Report shows the numbers.</p></div>
+
+<h2 class="sec" id="h-policy">Match or change?</h2>
+<p>Psychologists have long noted that people use films in two ways: some want content that mirrors a mood (a good cry), others want to be moved out of it (something light). Which is better differs between people, and between moods. Reel State treats that as a choice to be learned.</p>
+<div class="cols2">
+  <figure class="fig narrow">
+    <div class="scroll">
+    <svg class="dg" viewBox="0 0 400 372" role="img" aria-label="The mood square. An example mood that is low and wired. Matching targets the same spot; changing targets a pleasant, calmer spot.">
+      <rect class="box" x="40" y="22" width="320" height="320" rx="4" style="fill-opacity:.5"/>
+      <path class="soft" d="M200,22V342M40,182H360"/>
+      <g class="mono" font-size="10" style="letter-spacing:.1em"><text x="48" y="38" class="s">TENSE</text><text x="352" y="38" text-anchor="end" class="s">EXCITED</text><text x="48" y="334" class="s">LOW</text><text x="352" y="334" text-anchor="end" class="s">CALM</text></g>
+      <text class="lbl" x="200" y="362" text-anchor="middle">unpleasant → pleasant</text>
+      <text class="lbl" x="14" y="182" text-anchor="middle" transform="rotate(-90 14 182)">calm → intense</text>
+      <circle cx="104" cy="70" r="18" class="box-c" style="fill:var(--cool);fill-opacity:.15;stroke-dasharray:3 3"/>
+      <circle cx="104" cy="70" r="6" style="fill:var(--cool)"/>
+      <text class="lbl-c" x="130" y="63">you now: low and wired</text>
+      <circle cx="312" cy="249" r="6" style="fill:var(--warm)"/>
+      <path class="ln-w" d="M114,80L302,240" marker-end="url(#ahw)"/>
+      <text class="lbl-w" x="304" y="272" text-anchor="middle">change: pleasant,</text><text class="lbl-w" x="304" y="285" text-anchor="middle">opposite energy</text>
+      <text class="lbl-c" x="130" y="80">match: same spot</text>
+    </svg>
+    </div>
+    <figcaption><b>Two targets.</b> The example mood (valence −0.6, arousal +0.7) gives a change target of (+0.7, −0.4).</figcaption>
+  </figure>
+  <div>
+    <h3 style="margin-top:0">How it chooses</h3>
+    <ul>
+      <li>It keeps a scorecard for each person, for each of four kinds of mood (upbeat or low, wired or calm), and for each strategy.</li>
+      <li>Each scorecard is a Beta distribution. Each decision draws from the two scorecards (Thompson sampling), so a strategy that has barely been tried still gets a chance.</li>
+      <li><b>It leaves "change" only with evidence.</b> Match is chosen only if its draw beats change by a margin of 0.08. This stops wasteful experimenting.</li>
+      <li><b>New users borrow.</b> A new person starts from other people's average results (worth 12 imaginary observations), and what worked for you in other moods counts at full weight, because style tends to be a stable trait.</li>
+    </ul>
+    <h3>The reward</h3>
+    <p>After a film you set two sliders and optionally tap "Loved it" or "Not for me".</p>
+    <p class="wide"><code>reward = 0.6 × felt outcome + 0.4 × liked</code><br>where <code>felt outcome = (rise in valence + 0.5 × drop in |arousal|) ÷ 1.5</code>, rescaled to 0–1. "Better" therefore means more pleasant and less extreme. That is a design choice, stated openly.</p>
+  </div>
+</div>
+
+<h2 class="sec" id="h-house">Watching together</h2>
+<p>When several people share a screen, each has their own mood belief and their own strategy, which gives each a personal target. The targets are blended into one, with extra weight on people we are confident about and on whoever is feeling lowest (weight × 1.5 at the lowest mood). Films are ranked by the average distance to everyone's target <em>plus</em> a penalty on the worst-served person (0.30 × the largest distance), so nobody is sacrificed for the average. Every person then gets their own recommendation record and their own check-in, so each person's policy learns from their own reaction.</p>
+<div class="say warn"><b>Honest note</b><p>In our simulations this fairness-aware blending did not beat simple averaging; all rules were within noise. It stays as a feature, not as a claimed result.</p></div>
+
+<h2 class="sec" id="h-db">The database</h2>
+<p>PostgreSQL 17 with the <code>pgvector</code> extension. The design choices that matter:</p>
+<ul>
+  <li><b>History and "now" are separate.</b> <code>mood_state</code> only ever grows (a trajectory). <code>mood_current</code> holds one live row per person and is rewritten on every reading. Its index therefore sees constant updates, which is exactly the load the benchmarks stress.</li>
+  <li><b>Retrieval is one statement</b> that mixes relational filters with vector ordering:</li>
+</ul>
+<pre class="sql"><code>SELECT movie_id, title, genres, runtime_min, valence, arousal, avg_rating,
+       1 - (content_emb &lt;=&gt; :mood_vector) AS cosine
+FROM   movies
+WHERE  (:max_runtime IS NULL OR runtime_min &lt;= :max_runtime)
+  AND  (:language    IS NULL OR language = :language)
+  AND  (:genres      IS NULL OR genres &amp;&amp; :genres)
+  AND  NOT (movie_id = ANY(:already_seen))
+ORDER  BY content_emb &lt;=&gt; :mood_vector
+LIMIT  400;</code></pre>
+<ul>
+  <li><b>Filters can starve a vector index</b>, so every connection turns on HNSW <em>iterative scanning</em> (<code>hnsw.iterative_scan = relaxed_order</code>, <code>ef_search = 100</code>, <code>max_scan_tuples = 20000</code>). Without it, a selective filter returns almost nothing. The Report shows the measurements.</li>
+  <li>Eight migrations build the schema; the recommendations and check-ins tables are what turn a catalogue into a feedback loop.</li>
+</ul>
+
+<h2 class="sec" id="h-models">Every model and setting</h2>
+<p>If a value is tuned, the Report says on which data.</p>
+<div class="tbl wide"><table>
+  <tr><th>Part</th><th>What it is</th><th>Settings</th><th>Code</th></tr>
+  <tr><td class="k">Film text vectors</td><td>Sentence-transformer <code>all-MiniLM-L6-v2</code>, 384 numbers, unit length</td><td>Text = title, year, genres, plot, 12 strongest tags</td><td><code>build_embeddings.py</code></td></tr>
+  <tr><td class="k">Film feel scores</td><td>Hand-made lexicon of 176 Tag Genome tags, each with valence and arousal</td><td>Sum of relevance³ × tag score; centre and scale; <code>tanh(z/1.5)</code></td><td><code>affect.py</code></td></tr>
+  <tr><td class="k">Mood into film space</td><td>Ridge regression from 6 curve features of (valence, arousal) to the 384 numbers</td><td>Ridge 0.01; result normalised</td><td><code>affect_space.py</code></td></tr>
+  <tr><td class="k">Adaptive quiz</td><td>Graded-response item response theory, one latent trait per axis</td><td>20 questions × 5 answers; grid of 161 points over −4…4; stop at doubt ≤ 0.6 on both axes, 6 questions, or no useful gain; 24 h no-repeat; answers under 0.6 s count half, over 15 s count 0.8×</td><td><code>quiz.py</code>, <code>quiz_bank.py</code></td></tr>
+  <tr><td class="k">Typing evidence</td><td>Five timing features, z-scored against your own baseline</td><td>At least 25 keys; arousal evidence variance 1.8, valence 2.5; baseline blends toward you with weight n/(n+5)</td><td><code>typing_features.py</code></td></tr>
+  <tr><td class="k">Time of day</td><td>Weak circadian and weekend prior</td><td>Arousal 0.5·cos(2π(hour−16)/24); weekend valence +0.15; variances 3.0 and 4.0</td><td><code>fusion.py</code></td></tr>
+  <tr><td class="k">Mood belief</td><td>Ornstein–Uhlenbeck drift with precision-weighted (Kalman-style) updates, per axis</td><td>6 h half-life; ask again when doubt &gt; 0.75; check-in evidence variance 0.3</td><td><code>fusion.py</code></td></tr>
+  <tr><td class="k">Film index</td><td>pgvector HNSW, cosine distance</td><td>m 16, ef_construction 64, ef_search 100, iterative scan relaxed_order, 20,000 tuple limit</td><td><code>006_movie_hnsw.sql</code></td></tr>
+  <tr><td class="k">Live mood index</td><td>pgvector HNSW over <code>mood_current</code></td><td>m 16, ef_construction 64</td><td><code>004_mood_current.sql</code></td></tr>
+  <tr><td class="k">Ranking</td><td>Weighted score over a 400-film pool</td><td>0.55 feel distance, 0.10 quality margin, 0.20 people-like-you; quality floor 3.4 (shrunk rating, strength 300, catalogue mean 3.28); sample 5 from top 25, temperature 0.05</td><td><code>recommend.py</code></td></tr>
+  <tr><td class="k">People-like-you</td><td>Nearest 20 live mood vectors from the last 48 h</td><td>Counts check-ins with reward ≥ 0.6</td><td><code>service.py</code></td></tr>
+  <tr><td class="k">Policy</td><td>Beta–Bernoulli bandit with Thompson sampling, shared prior, pooling across moods, default strategy</td><td>Prior strength 12, pooling weight 1.0, switch margin 0.08, default "change"</td><td><code>policy.py</code></td></tr>
+  <tr><td class="k">Reward</td><td>Felt outcome blended with "liked"</td><td>0.6 outcome + 0.4 liked</td><td><code>policy.py</code></td></tr>
+  <tr><td class="k">Household</td><td>Confidence- and need-weighted blend, fairness-penalised ranking</td><td>Need boost 0.5, worst-case penalty 0.30</td><td><code>household.py</code></td></tr>
+  <tr><td class="k">Access control</td><td>Random secret per profile; only its SHA-256 hash stored; kept in the browser</td><td>Sent in an <code>X-Token</code> header</td><td><code>auth.py</code></td></tr>
+</table></div>
+<h3>Technology</h3>
+<p>PostgreSQL 17.11 · pgvector 0.8.7 · Python 3.12 · FastAPI · psycopg 3 · sentence-transformers (PyTorch) · NumPy · a single HTML/JavaScript page with no framework. 28 automated tests cover the quiz, mood fusion, typing privacy, the policy, the recommender and household mode.</p>
+
+<h2 class="sec" id="h-api">What the demo calls</h2>
+<div class="tbl wide"><table>
+  <tr><th>You do this</th><th>The page calls</th><th>What happens</th></tr>
+  <tr><td class="k">Open the page</td><td><code>POST /api/context/{id}</code>, <code>GET /api/mood/{id}</code></td><td>Records the hour as a weak reading and draws your mood belief.</td></tr>
+  <tr><td class="k">Press "Done writing"</td><td><code>POST /api/typing</code></td><td>Timing becomes five numbers, then a mood reading. The text is discarded in the browser.</td></tr>
+  <tr><td class="k">Answer a question</td><td><code>POST /api/quiz/next</code>, then <code>/api/quiz/commit</code></td><td>Replays your answers on top of the current belief and returns the next best question, or saves the result.</td></tr>
+  <tr><td class="k">"Find something"</td><td><code>POST /api/recommend</code></td><td>Policy chooses a strategy, the query runs, a slate comes back with reasons.</td></tr>
+  <tr><td class="k">"Find something for us"</td><td><code>POST /api/household/recommend</code></td><td>Each member's token is checked, targets are blended, a shared slate is returned.</td></tr>
+  <tr><td class="k">"I watched this" then Save</td><td><code>POST /api/checkin</code></td><td>Reward computed, policy updated, new mood folded in.</td></tr>
+  <tr><td class="k">Look at the side panels</td><td><code>GET /api/trajectory/{id}</code>, <code>/api/policy/{id}</code></td><td>Recent readings and what has worked for you.</td></tr>
+</table></div>

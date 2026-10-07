@@ -1,0 +1,26 @@
+# Render Blueprint: one web service + one Postgres database (with pgvector).
+databases:
+  - name: reelstate-db
+    databaseName: reelstate
+    plan: free                  # 1 GB; free databases expire after 30 days (see DEPLOY.md)
+    postgresMajorVersion: "17"
+    ipAllowList:                # open only so you can load the film catalogue from your laptop;
+      - source: 0.0.0.0/0       # tighten or remove it afterwards (DEPLOY.md, step 5)
+        description: temporary, for the one-off catalogue import
+
+services:
+  - type: web
+    name: reel-state
+    runtime: python
+    plan: free                  # sleeps after 15 minutes without traffic; wakes in about a minute
+    buildCommand: pip install -r requirements-web.txt
+    startCommand: uvicorn reelstate.api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PYTHONPATH
+        value: src
+      - key: DATABASE_URL
+        fromDatabase:
+          name: reelstate-db
+          property: connectionString
