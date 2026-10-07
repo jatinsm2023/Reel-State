@@ -50,6 +50,23 @@ scripts/import_catalog.sh "PASTE-THE-EXTERNAL-DATABASE-URL-HERE"
 
 Export takes seconds (29 MB), import about a minute. It ends by printing `13174 | 13174`. The import refuses to run if films are already there, so it cannot duplicate anything.
 
+**Already imported the catalogue before posters were added?** Load just the posters. The file is self-contained: it adds the missing column itself, so you do not need to redeploy first, and it loads everything in one transaction (seconds, even over the internet).
+
+```bash
+scripts/export_posters.sh
+```
+```bash
+psql "PASTE-THE-EXTERNAL-DATABASE-URL-HERE" -v ON_ERROR_STOP=1 -f posters.sql
+```
+
+It ends by printing about `13092` films with a poster. Running it twice is harmless.
+
+**Then push the new code.** The posters and the new step-by-step Try page only appear on the live site after the latest code is pushed to GitHub (Render redeploys automatically):
+
+```bash
+git add -A && git commit -m "Step-by-step Try page and posters" && git push
+```
+
 ## 4. Check it
 
 Open `https://YOUR-SERVICE.onrender.com/api/status`. You want:
@@ -78,6 +95,7 @@ The web service still reaches the database over Render's private network.
 | Free database | 1 GB (we use well under 200 MB). **It expires 30 days after creation**, with 14 days to upgrade before data is deleted. Afterwards, upgrade it, or create a new one and repeat steps 2–3. Profiles and check-ins would be lost. |
 | Updating the site | `git push`. Render redeploys automatically. |
 | Visitors' data | The Try it page stores each visitor's mood readings and check-ins in your database. Do not share the link widely, or run the pilot on it, until you have the consent process in `pilot/PILOT.md` sorted. |
+| Posters | Posters load from TMDB's image servers in each visitor's browser (TMDB therefore sees the visitor's IP address, as with any website that shows TMDB images). The site shows the required TMDB attribution; keep it. A few films without a poster show a lettered placeholder. |
 | pgvector version | Render does not state which version it provides. If `/api/status` shows `iterative_scan_supported: false`, the site still works, but searches with strict filters may return fewer films. |
 
 ## If something is wrong

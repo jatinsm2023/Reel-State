@@ -146,6 +146,19 @@ def trajectory(user_id: int, limit: int = 60, x_token: str | None = Header(None)
     return [{"ts": r[0], "valence": r[1], "arousal": r[2]} for r in reversed(rows)]
 
 
+@app.get("/api/readings/{user_id}")
+def readings(user_id: int, limit: int = 8, x_token: str | None = Header(None)):
+    """Recent sensor readings behind the mood belief, in plain terms (valence/arousal in [-1, 1])."""
+    with db() as c:
+        auth.verify(c, user_id, x_token)
+        rows = c.execute(
+            "SELECT ts, source, valence_obs, arousal_obs, features FROM mood_events WHERE user_id = %s "
+            "ORDER BY ts DESC LIMIT %s", (user_id, limit)).fetchall()
+    sq = lambda x: None if x is None else to_va(x)
+    return [{"ts": r[0], "source": r[1], "valence": sq(r[2]), "arousal": sq(r[3]),
+             "n_items": (r[4] or {}).get("n_items"), "n_keys": (r[4] or {}).get("n_keys")} for r in rows]
+
+
 @app.post("/api/context/{user_id}")
 def context(user_id: int, x_token: str | None = Header(None)):
     with db() as c:

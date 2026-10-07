@@ -338,11 +338,11 @@ LIMIT  400;</code></pre>
 <h2 class="sec" id="h-api">What the demo calls</h2>
 <div class="tbl wide"><table>
   <tr><th>You do this</th><th>The page calls</th><th>What happens</th></tr>
-  <tr><td class="k">Open the page</td><td><code>POST /api/context/{id}</code>, <code>GET /api/mood/{id}</code></td><td>Records the hour as a weak reading and draws your mood belief.</td></tr>
-  <tr><td class="k">Press "Done writing"</td><td><code>POST /api/typing</code></td><td>Timing becomes five numbers, then a mood reading. The text is discarded in the browser.</td></tr>
-  <tr><td class="k">Answer a question</td><td><code>POST /api/quiz/next</code>, then <code>/api/quiz/commit</code></td><td>Replays your answers on top of the current belief and returns the next best question, or saves the result.</td></tr>
-  <tr><td class="k">"Find something"</td><td><code>POST /api/recommend</code></td><td>Policy chooses a strategy, the query runs, a slate comes back with reasons.</td></tr>
-  <tr><td class="k">"Find something for us"</td><td><code>POST /api/household/recommend</code></td><td>Each member's token is checked, targets are blended, a shared slate is returned.</td></tr>
-  <tr><td class="k">"I watched this" then Save</td><td><code>POST /api/checkin</code></td><td>Reward computed, policy updated, new mood folded in.</td></tr>
-  <tr><td class="k">Look at the side panels</td><td><code>GET /api/trajectory/{id}</code>, <code>/api/policy/{id}</code></td><td>Recent readings and what has worked for you.</td></tr>
+  <tr><td class="k">Pick a profile</td><td><code>POST /api/context/{id}</code>, <code>GET /api/mood/{id}</code></td><td>Records the hour as a weak reading and draws your mood belief.</td></tr>
+  <tr><td class="k">Step 1: continue after writing</td><td><code>POST /api/typing</code></td><td>Timing becomes five numbers, then a mood reading. The text is discarded in the browser.</td></tr>
+  <tr><td class="k">Step 2: answer a question</td><td><code>POST /api/quiz/next</code>, then <code>/api/quiz/commit</code></td><td>Replays your answers on top of the current belief and returns the next best question, or saves the result.</td></tr>
+  <tr><td class="k">Step 3: "Show me films"</td><td><code>POST /api/recommend</code></td><td>Policy chooses a strategy, the query runs, a slate comes back with reasons.</td></tr>
+  <tr><td class="k">Step 3 with someone else selected</td><td><code>POST /api/household/recommend</code></td><td>Each member's token is checked, targets are blended, a shared slate is returned.</td></tr>
+  <tr><td class="k">Step 4: "I watched this", then Save</td><td><code>POST /api/checkin</code></td><td>Reward computed, policy updated, new mood folded in.</td></tr>
+  <tr><td class="k">Step 4: "About you"</td><td><code>GET /api/mood/{id}</code>, <code>/api/trajectory/{id}</code>, <code>/api/readings/{id}</code>, <code>/api/policy/{id}</code></td><td>Your mood now, the readings behind it in plain words, and what has worked for you so far.</td></tr>
 </table></div>

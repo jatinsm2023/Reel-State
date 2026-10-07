@@ -85,6 +85,7 @@ def recommend_group(conn, user_ids: list[int], now: datetime, filters: Filters |
             ).fetchone()[0]
         out.append({"movie_id": m["movie_id"], "title": m["title"], "year": m["year"], "genres": m["genres"],
                     "runtime_min": m["runtime_min"], "overview": m["overview"], "score": round(m["score"], 4),
+                    "poster_path": m.get("poster_path"), "avg_rating": m["avg_rating"], "n_ratings": m["n_ratings"],
                     "rec_ids": rec_ids, "member_distance": {mem["name"]: round(d, 2) for mem, d in zip(members, m["member_dist"])},
                     "movie_affect": [round(m["valence"], 2), round(m["arousal"], 2)]})
     return {

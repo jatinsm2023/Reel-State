@@ -40,7 +40,7 @@ class Filters:
 
 CANDIDATE_SQL = """
 SELECT movie_id, title, year, genres, runtime_min, language, valence, arousal, overview,
-       avg_rating, n_ratings, 1 - (content_emb <=> %(q)s) AS cosine
+       avg_rating, n_ratings, poster_path, 1 - (content_emb <=> %(q)s) AS cosine
 FROM movies
 WHERE content_emb IS NOT NULL
   AND (%(max_runtime)s::int IS NULL OR runtime_min <= %(max_runtime)s)
@@ -101,7 +101,7 @@ def fetch_by_ids(conn, ids: list[int], target: tuple[float, float]) -> list[dict
     if not ids:
         return []
     cur = conn.execute(
-        "SELECT movie_id, title, year, genres, runtime_min, language, valence, arousal, overview, avg_rating, n_ratings, "
+        "SELECT movie_id, title, year, genres, runtime_min, language, valence, arousal, overview, avg_rating, n_ratings, poster_path, "
         "1 - (content_emb <=> %s) AS cosine FROM movies WHERE movie_id = ANY(%s)", (affect_space.embed(*target), ids))
     cols = [c.name for c in cur.description]
     return [dict(zip(cols, r)) for r in cur.fetchall()]
@@ -167,6 +167,7 @@ def recommend(conn, user_id: int, now: datetime, filters: Filters | None = None,
         ).fetchone()[0]
         out.append({"rec_id": rec_id, "movie_id": m["movie_id"], "title": m["title"], "year": m["year"],
                     "genres": m["genres"], "runtime_min": m["runtime_min"], "overview": m["overview"],
+                    "poster_path": m.get("poster_path"), "avg_rating": m["avg_rating"], "n_ratings": m["n_ratings"],
                     "score": round(m["score"], 4), "explanation": ex})
     return {"strategy": strategy, "quadrant": q, "mood": {"valence": v, "arousal": a},
             "target": {"valence": target[0], "arousal": target[1]},

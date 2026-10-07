@@ -14,6 +14,7 @@ from .db import connect
 
 CACHE = DATA_DIR / "tmdb_cache"
 BASE = "https://api.themoviedb.org/3/movie/"
+TV_BASE = "https://api.themoviedb.org/3/tv/"      # MovieLens lists some TV mini-series under movie ids TMDB files as TV
 CONCURRENCY = 12
 
 
@@ -26,7 +27,9 @@ def auth() -> tuple[dict, dict]:
 async def fetch_one(client: httpx.AsyncClient, sem: asyncio.Semaphore, tmdb_id: int, params: dict) -> str:
     path = CACHE / f"{tmdb_id}.json"
     if path.exists():
-        return "cached"
+        cached = json.loads(path.read_text())
+        if "poster_path" in cached or cached.get("tv_checked"):
+            return "cached"
     async with sem:
         for attempt in range(5):
             try:
@@ -36,10 +39,18 @@ async def fetch_one(client: httpx.AsyncClient, sem: asyncio.Semaphore, tmdb_id: 
                 continue
             if r.status_code == 200:
                 d = r.json()
-                path.write_text(json.dumps({k: d.get(k) for k in ("id", "overview", "runtime", "original_language", "tagline")}))
+                path.write_text(json.dumps({k: d.get(k) for k in ("id", "overview", "runtime", "original_language", "tagline", "poster_path")}))
                 return "ok"
             if r.status_code == 404:
-                path.write_text("{}")
+                t = await client.get(TV_BASE + str(tmdb_id), params=params)
+                if t.status_code == 200:
+                    d = t.json()
+                    runs = d.get("episode_run_time") or []
+                    path.write_text(json.dumps({"id": d.get("id"), "overview": d.get("overview"), "runtime": runs[0] if runs else None,
+                                                "original_language": d.get("original_language"), "tagline": d.get("tagline"),
+                                                "poster_path": d.get("poster_path")}))
+                    return "tv"
+                path.write_text(json.dumps({"tv_checked": True}))
                 return "missing"
             if r.status_code == 429:
                 await asyncio.sleep(2 + attempt * 2)
@@ -72,14 +83,15 @@ def apply_to_db() -> None:
     for p in CACHE.glob("*.json"):
         d = json.loads(p.read_text())
         if d.get("id"):
-            rows.append((d.get("overview") or None, d.get("runtime") or None, d.get("original_language"), int(d["id"])))
+            rows.append((d.get("overview") or None, d.get("runtime") or None, d.get("original_language"),
+                         d.get("poster_path") or None, int(d["id"])))
     with connect() as conn, conn.transaction():
         conn.cursor().executemany(
-            "UPDATE movies SET overview = %s, runtime_min = %s, language = %s WHERE tmdb_id = %s", rows
+            "UPDATE movies SET overview = %s, runtime_min = %s, language = %s, poster_path = %s WHERE tmdb_id = %s", rows
         )
         print(conn.execute(
             "SELECT count(*) FILTER (WHERE overview IS NOT NULL), count(*) FILTER (WHERE runtime_min IS NOT NULL), "
-            "count(*) FILTER (WHERE language IS NOT NULL) FROM movies"
+            "count(*) FILTER (WHERE language IS NOT NULL), count(*) FILTER (WHERE poster_path IS NOT NULL) FROM movies"
         ).fetchone())
 
 

@@ -9,3 +9,4 @@ reports/*.log
 reports/**/sim_results*.json
 .DS_Store
 .pytest_cache/
+posters.sql
